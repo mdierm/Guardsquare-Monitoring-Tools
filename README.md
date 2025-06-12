@@ -188,8 +188,6 @@ F --> H
 I --> H
 ```
 
----
-
 ## Inti Alur Kerja
 
 * **Input:** Data device pelanggar & data onboarding
