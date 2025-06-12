@@ -186,7 +186,6 @@ flowchart TD
   E --> I[Summary Impact & Progress]
   F --> H
   I --> H
-
 ```
 
 ---
