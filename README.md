@@ -176,16 +176,17 @@ streamlit run dashboard.py
 
 ```mermaid
 flowchart TD
-  A[Data Device Pelanggar (Guardsquare)] --> C[Join DeviceID & Onboarding]
-  B[Data Onboarding Nasabah (Wondr)] --> C
-  C --> D[Reverse Geocoding (LatLon ke Region)]
-  D --> E[Risk Scoring per CIF]
-  E --> F[Analitik Cohort]
-  E --> G[Visualisasi & Export (Chart, Heatmap, Excel)]
-  G --> H[Web Dashboard (Streamlit)]
-  E --> I[Summary Impact & Progress]
-  F --> H
-  I --> H
+    A[Data Device Pelanggar (Guardsquare)] --> C[Join DeviceID & Onboarding]
+    B[Data Onboarding Nasabah (Wondr)] --> C
+    C --> D[Reverse Geocoding (LatLon ke Region)]
+    D --> E[Risk Scoring per CIF]
+    E --> F[Analitik Cohort]
+    E --> G[Visualisasi & Export (Chart, Heatmap, Excel)]
+    G --> H[Web Dashboard (Streamlit)]
+    E --> I[Summary Impact & Progress]
+    F --> H
+    I --> H
+
 ```
 
 ---
