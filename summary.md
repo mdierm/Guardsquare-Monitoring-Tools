@@ -60,3 +60,97 @@ yang memudahkan tim untuk:
 * Serta mempercepat pengambilan keputusan mitigasi risiko berbasis data faktual.
 
 ---
+
+## **Summary: Reverse Geocoding pada Risk Analytics Tools**
+
+### **Apa itu Reverse Geocoding?**
+
+Reverse geocoding adalah proses **mengubah koordinat geografis** (latitude, longitude)
+menjadi **nama wilayah nyata** (seperti kota, kabupaten, provinsi, atau negara).
+
+### **Tujuan dalam Tools Ini**
+
+* **Menerjemahkan lokasi onboarding nasabah** (dari koordinat device) ke region/wilayah
+* **Memudahkan analisis distribusi risk secara geospasial** (pemetaan per provinsi/kota)
+
+### **Cara Kerja di Script:**
+
+1. **Ambil koordinat** (latitude, longitude) dari file onboarding nasabah.
+2. **Gunakan modul `geopy.Nominatim`** untuk query ke OpenStreetMap.
+3. **Mapping hasil** ke kolom baru (`REGION`, `PROVINCE`, `CITY`) di dataframe.
+4. **Caching**:
+
+   * Lokasi yang sudah pernah diproses **tidak akan query ulang**, sehingga proses lebih cepat di run berikutnya.
+
+---
+
+## **Contoh Kode Mini Reverse Geocoding (Python)**
+
+```python
+from geopy.geocoders import Nominatim
+geolocator = Nominatim(user_agent="risk_geomap_check")
+
+latitude = 3.583333333
+longitude = 98.68093333
+
+location = geolocator.reverse(f"{latitude}, {longitude}", language="id", timeout=10)
+if location and location.raw.get('address'):
+    address = location.raw['address']
+    print("Lokasi:", location.address)
+    print("Province:", address.get('state'))
+    print("City/Regency:", address.get('city') or address.get('county'))
+    print("Country:", address.get('country'))
+else:
+    print("Lokasi tidak ditemukan.")
+```
+
+---
+
+## **Simulasi Hasil Reverse Geocoding**
+
+**Input:**
+
+```
+latitude = 3.583333333
+longitude = 98.68093333
+```
+
+**Output Reverse Geocoding:**
+
+```
+Lokasi: Kecamatan Medan Sunggal, Kota Medan, Sumatera Utara, Indonesia
+Province: Sumatera Utara
+City/Regency: Kota Medan
+Country: Indonesia
+```
+
+---
+
+### **Contoh Output Lain:**
+
+**Input:**
+
+```
+latitude = -2.227071667
+longitude = 113.9307717
+```
+
+**Output:**
+
+```
+Lokasi: Kabupaten Kapuas, Kalimantan Tengah, Indonesia
+Province: Kalimantan Tengah
+City/Regency: Kabupaten Kapuas
+Country: Indonesia
+```
+
+---
+
+## **Kesimpulan**
+
+* **Reverse geocoding pada tools ini otomatis, cepat, dan efisien** (berkat caching).
+* **Output langsung siap pakai untuk analisis wilayah risk dan visualisasi heatmap/cluster.**
+* **Validasi bisa dilakukan dengan cek hasil langsung di Google Maps/OpenStreetMap** jika diperlukan.
+
+---
+
