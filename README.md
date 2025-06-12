@@ -174,19 +174,9 @@ streamlit run dashboard.py
 
 ## Diagram Alur Pipeline
 
-```mermaid
-flowchart TD
-A[Device Pelanggar (Guardsquare)] --> C[Join DeviceID Onboarding]
-B[Onboarding Nasabah (Wondr)] --> C
-C --> D[Reverse Geocoding]
-D --> E[Risk Scoring per CIF]
-E --> F[Analitik Cohort]
-E --> G[Export (Chart Heatmap Excel)]
-G --> H[Web Dashboard Streamlit]
-E --> I[Summary Impact Progress]
-F --> H
-I --> H
-```
+
+![Risk Scoring Pipeline](https://i.imgur.com/2SJPNNw.png)
+
 
 ## Inti Alur Kerja
 
