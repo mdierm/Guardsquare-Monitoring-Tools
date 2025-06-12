@@ -111,11 +111,125 @@ streamlit run dashboard.py
 
 ---
 
-## **Lisensi**
-
-Bebas dipakai untuk kebutuhan internal risk analytics, audit, compliance, dan penguatan fraud detection.
+## **🔄 Alur Kerja Script Risk Scoring Device/CIF Per Region**
 
 ---
 
-> **For any questions, support, or custom development: contact the repo maintainer.**
+### **A. Pipeline Analitik (`risk_pipeline.py`)**
+
+1. **Load Data**
+
+   * Membaca file DEVICE\_ID pelanggar dari Guardsquare/ThreatCast (`Final Data Unique ID - Februari 2025.xlsx`)
+   * Membaca file data onboarding nasabah dari Wondr (`export_detail.xlsx`)
+
+2. **Validasi Kolom**
+
+   * Memastikan kolom wajib seperti `DEVICE_ID`, `CIF`, `LATITUDE`, `LONGITUDE`, dan `CREATED_TIME` tersedia.
+
+3. **Join Data**
+
+   * Melakukan pencocokan (join) antara device pelanggar dan data onboarding, sehingga hanya nasabah nyata yang dianalisis.
+
+4. **Mapping Lokasi (Reverse Geocoding)**
+
+   * Mengubah koordinat latitude/longitude menjadi nama region/provinsi/kota dengan **caching** (agar efisien dan cepat).
+   * Hasil mapping disimpan dalam cache (`region_cache.pkl`) agar proses berikutnya lebih cepat.
+
+5. **Risk Scoring per CIF**
+
+   * Menghitung risk score setiap nasabah (CIF) berdasarkan pola:
+
+     * **Transient:** hanya 1 device, hanya 1 bulan
+     * **Persistent:** 1 device, >1 bulan
+     * **Multi-device:** >1 device, 1 bulan
+     * **Critical:** >1 device, >1 bulan
+
+6. **Analitik Cohort**
+
+   * Menganalisis tren risk berdasarkan cohort onboarding nasabah (bulan onboarding pertama).
+
+7. **Visualisasi**
+
+   * Membuat bar chart total dan rata-rata risk score per region.
+   * Membuat heatmap geospasial (HTML) untuk distribusi risk di seluruh Indonesia.
+
+8. **Summary Impact**
+
+   * Menampilkan ringkasan jumlah nasabah terdampak, breakdown transient/persistent/critical.
+
+9. **Export Output**
+
+   * Menyimpan hasil scoring ke file Excel (dengan timestamp).
+   * Menyimpan heatmap ke HTML.
+
+10. **Progress Info**
+
+    * Selama eksekusi, script menampilkan status dan info summary di console agar user tahu progress setiap step.
+
+---
+
+### **B. Dashboard Interaktif (`dashboard.py`)**
+
+1. **Load Data Output Pipeline**
+
+   * Membaca file Excel hasil scoring dari pipeline (`hasil_risk_scoring_per_cif_YYYYMMDD_HHMM.xlsx`).
+
+2. **Filter & Navigasi**
+
+   * User dapat memfilter cohort, region, dan risk type.
+   * Jumlah data hasil filter selalu diinformasikan (progress info).
+
+3. **Tab Visualisasi**
+
+   * **Risk per Region**: Bar chart total risk score per wilayah.
+   * **Trend Cohort**: Line chart rata-rata risk score per cohort onboarding.
+   * **Heatmap**: Peta sebaran lokasi onboarding device pelanggar.
+   * **Cluster Analysis**: Deteksi hotspot risk via K-Means (dengan slider jumlah cluster).
+   * **Demografi (jika ada)**: Bar chart segmentasi risk per gender/tipe nasabah.
+
+4. **Progress Info & Warning**
+
+   * Muncul otomatis jika data hasil filter sedikit/tidak cukup untuk visual tertentu (heatmap/cluster).
+
+5. **Keterangan Sidebar**
+
+   * Penjelasan workflow, filter, dan batasan tools untuk user.
+
+---
+
+## **Diagram Sederhana Alur Pipeline**
+
+```
+1. Data Device Pelanggar  +  2. Data Onboarding Nasabah
+           |                      |
+           +----------+-----------+
+                      |
+                 3. Join DeviceID
+                      |
+           4. Reverse Geocoding (cache)
+                      |
+              5. Risk Scoring per CIF
+                      |
+           +----------+----------+
+           |                     |
+   6. Analitik Cohort      7. Visualisasi
+           |                     |
+     8. Summary Impact     9. Export Output
+```
+
+---
+
+## **Inti Alur Kerja**
+
+* **Input:** Data device pelanggar & data onboarding
+* **Proses:** Join → mapping lokasi → scoring risk → analitik cohort/region
+* **Output:** Tabel scoring CIF, heatmap HTML, dashboard web interaktif
+
+---
+
+**Tools ini memastikan risk analytic berbasis device & region hanya memakai data yang valid dan siap presentasi ke audit/BI.**
+**Alur ini juga sangat fleksibel—jika data atau model scoring berubah, pipeline bisa langsung diadaptasi.**
+
+---
+
 
