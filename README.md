@@ -215,5 +215,4 @@ Alur ini juga sangat fleksibel—jika data atau model scoring berubah, pipeline 
 
 ---
 
-**Pustaka:**
-(Summary)[summary.md]
+*(summary.md)[Summary]
