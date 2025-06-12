@@ -6,36 +6,49 @@ import matplotlib.pyplot as plt
 import folium
 from folium.plugins import HeatMap
 import pickle
+from datetime import datetime
+
+# --- Progress Info Function ---
+def log_progress(msg):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{now}] {msg}")
 
 # --- 1. Load Data ---
 def load_threatcast(path):
+    log_progress(f"Memuat data ThreatCast dari: {path}")
     df = pd.read_excel(path)
     return set(df.iloc[:, 0].astype(str))
 
 def load_production(path):
+    log_progress(f"Memuat data onboarding Wondr dari: {path}")
     return pd.read_excel(path)
 
 # --- 2. Join DeviceID Guardsquare ke Production ---
 def filter_production_by_deviceid(df_prod, device_ids):
-    return df_prod[df_prod['DEVICE_ID'].astype(str).isin(device_ids)].copy()
+    joined = df_prod[df_prod['DEVICE_ID'].astype(str).isin(device_ids)].copy()
+    log_progress(f"Match DEVICE_ID di onboarding: {len(joined)} rows, {joined['CIF'].nunique()} CIF unik")
+    return joined
 
 # --- 3. Caching Setup ---
 def load_region_cache(cache_path='region_cache.pkl'):
     try:
         with open(cache_path, 'rb') as f:
             cache = pickle.load(f)
+        log_progress(f"Region cache ditemukan dan dimuat ({len(cache)} koordinat).")
     except FileNotFoundError:
         cache = {}
+        log_progress("Region cache tidak ditemukan, akan dibuat baru.")
     return cache
 
 def save_region_cache(cache, cache_path='region_cache.pkl'):
     with open(cache_path, 'wb') as f:
         pickle.dump(cache, f)
+    log_progress(f"Region cache disimpan ({len(cache)} koordinat).")
 
-# --- 4. Geocoding with Caching (serial, for simplicity & API respect) ---
+# --- 4. Geocoding with Caching ---
 def get_region_cached(lat, lon, geolocator, cache, delay=1):
     key = (round(lat, 5), round(lon, 5))
-    if pd.isnull(lat) or pd.isnull(lon):
+    if pd.isnull(lat) or pd.isnull(lon) or lat == 0 or lon == 0:
         return "Unknown"
     if key in cache:
         return cache[key]
@@ -54,13 +67,14 @@ def get_region_cached(lat, lon, geolocator, cache, delay=1):
         else:
             cache[key] = "Unknown"
             return "Unknown"
-    except:
+    except Exception as e:
         cache[key] = "Unknown"
         return "Unknown"
 
 def map_all_regions(df, cache, delay=1):
     geolocator = Nominatim(user_agent="wondr_risk_segmentasi")
     tqdm.pandas()
+    log_progress("Proses mapping long/lat ke REGION dimulai (progress di bawah)...")
     df['REGION'] = df.progress_apply(
         lambda row: get_region_cached(row['LATITUDE'], row['LONGITUDE'], geolocator, cache, delay=delay), axis=1
     )
@@ -68,6 +82,7 @@ def map_all_regions(df, cache, delay=1):
 
 # --- 5. Risk Scoring Dinamis per CIF ---
 def compute_risk_scoring(df):
+    log_progress("Risk scoring per CIF sedang diproses...")
     df['CREATED_TIME'] = pd.to_datetime(df['CREATED_TIME'], errors='coerce')
     df['BULAN_TAHUN'] = df['CREATED_TIME'].dt.to_period('M')
     df['COHORT'] = df.groupby('CIF')['CREATED_TIME'].transform('min').dt.to_period('M')
@@ -76,19 +91,17 @@ def compute_risk_scoring(df):
     for cif, group in df.groupby('CIF'):
         months = group['BULAN_TAHUN'].nunique()
         devices = group['DEVICE_ID'].nunique() if 'DEVICE_ID' in group else 1
-        returning = months > 1
-        # Risk scoring dinamis
         if months == 1 and devices == 1:
-            score = 1  # Transient
+            score = 1
             label = "Transient"
         elif months > 1 and devices == 1:
-            score = 2  # Persistent (multi-bulan)
+            score = 2
             label = "Persistent"
         elif months == 1 and devices > 1:
-            score = 2  # Multi-device
+            score = 2
             label = "Multi-device"
         elif months > 1 and devices > 1:
-            score = 3  # Persistent + Multi-device
+            score = 3
             label = "Critical"
         else:
             score = 1
@@ -109,6 +122,7 @@ def cohort_analysis(df_risk):
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.show()
+    log_progress("Analisis cohort selesai.")
     return cohort_summary
 
 # --- 7. Risk Region Aggregation & Visualisasi ---
@@ -135,17 +149,23 @@ def visualize_risk_region(df_risk, top_n=10):
     plt.xticks(rotation=25)
     plt.tight_layout()
     plt.show()
+    log_progress("Visualisasi risk region selesai.")
     return risk_region_sum, risk_region_mean
 
 # --- 8. Heatmap Geospasial ---
 def export_heatmap(df, path='risk_heatmap.html'):
+    log_progress("Proses export heatmap dimulai...")
     df_heat = df.dropna(subset=['LATITUDE', 'LONGITUDE'])
+    if len(df_heat) < 10:
+        print("Warning: Sedikit data lokasi, heatmap mungkin kurang representatif!")
+    elif len(df_heat) > 10000:
+        print("Warning: Banyak titik lokasi, proses heatmap bisa lebih lama!")
     map_center = [-2.5, 118.0]
     m = folium.Map(location=map_center, zoom_start=5, tiles='OpenStreetMap')
     points = df_heat[['LATITUDE', 'LONGITUDE']].values.tolist()
     HeatMap(points, radius=10, blur=12, max_zoom=13).add_to(m)
     m.save(path)
-    print(f"Heatmap risk scoring wilayah tersimpan di {path}")
+    log_progress(f"Heatmap risk scoring wilayah tersimpan di {path}")
 
 # --- 9. Analisis Jumlah Nasabah Terimpact ---
 def impacted_customer_summary(df_risk):
@@ -158,31 +178,39 @@ def impacted_customer_summary(df_risk):
     print(f"Persistent/critical/multi-device risk: {persistent_risk} nasabah ({persistent_risk/jumlah_nasabah:.2%})")
     print("="*50)
     print("**Ini adalah estimasi nasabah terdampak jika RASP hardware enforcement diaktifkan.**")
+    log_progress("Summary impacted customers selesai.")
 
 # --- 10. Pipeline Utama ---
 def main_pipeline(path_threatcast, path_prod):
+    print("\n=== RISK PIPELINE STARTED ===")
     device_ids = load_threatcast(path_threatcast)
+    print(f"Total DEVICE_ID pelanggar: {len(device_ids)}")
     df_prod = load_production(path_prod)
-    df_join = filter_production_by_deviceid(df_prod, device_ids)
 
-    print(f"DEVICE_ID pelanggar (Guardsquare): {len(device_ids)}")
-    print(f"Match onboarding: {len(df_join)} rows, {df_join['CIF'].nunique()} CIF unik")
+    # Validasi kolom wajib
+    wajib = ['DEVICE_ID', 'CIF', 'LATITUDE', 'LONGITUDE', 'CREATED_TIME']
+    for w in wajib:
+        assert w in df_prod.columns, f"Missing required column: {w}"
+
+    df_join = filter_production_by_deviceid(df_prod, device_ids)
 
     region_cache = load_region_cache()
     if 'REGION' not in df_join.columns:
-        print("Mapping long/lat ke REGION (dengan cache, proses bisa lama)...")
         df_join = map_all_regions(df_join, region_cache, delay=1)
         save_region_cache(region_cache)
     else:
-        print("Kolom REGION sudah ada, skip mapping.")
+        log_progress("Kolom REGION sudah ada, skip mapping.")
 
     df_risk = compute_risk_scoring(df_join)
     cohort_analysis(df_risk)
     risk_region_sum, risk_region_mean = visualize_risk_region(df_risk)
     export_heatmap(df_join)
     impacted_customer_summary(df_risk)
-    df_risk.to_excel("hasil_risk_scoring_per_cif.xlsx", index=False)
-    print("Hasil risk scoring CIF diekspor ke hasil_risk_scoring_per_cif.xlsx")
+    out_name = f"hasil_risk_scoring_per_cif_{datetime.now():%Y%m%d_%H%M}.xlsx"
+    df_risk.to_excel(out_name, index=False)
+    log_progress(f"Hasil risk scoring CIF diekspor ke {out_name}")
+    print("=== RISK PIPELINE SELESAI ===")
+    print(f"Hasil dapat ditemukan di: {out_name} dan risk_heatmap.html")
     return df_risk, risk_region_sum, risk_region_mean
 
 # --- Run Pipeline ---
