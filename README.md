@@ -119,4 +119,3 @@ Bebas dipakai untuk kebutuhan internal risk analytics, audit, compliance, dan pe
 
 > **For any questions, support, or custom development: contact the repo maintainer.**
 
----
