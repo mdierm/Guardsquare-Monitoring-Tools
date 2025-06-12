@@ -175,7 +175,31 @@ streamlit run dashboard.py
 ## Diagram Alur Pipeline
 
 
-![Risk Scoring Pipeline](https://i.imgur.com/2SJPNNw.png)
+```mermaid
+sequenceDiagram
+    participant Guardsquare as Device Pelanggar (Guardsquare)
+    participant Wondr as Onboarding Nasabah (Wondr)
+    participant Pipeline as Risk Scoring Pipeline
+    participant Map as Reverse Geocoding
+    participant Risk as Risk Scoring Engine
+    participant Analitik as Analitik Cohort
+    participant Export as Export & Visualisasi
+    participant Dashboard as Web Dashboard
+
+    Guardsquare->>Pipeline: Kirim DEVICE_ID pelanggar
+    Wondr->>Pipeline: Kirim data onboarding (DEVICE_ID, CIF, lokasi)
+    Pipeline->>Pipeline: Join DEVICE_ID & Onboarding
+    Pipeline->>Map: Mapping Lat/Lon ke Region
+    Map-->>Pipeline: Region/Provinsi
+    Pipeline->>Risk: Hitung Risk Scoring per CIF
+    Risk-->>Pipeline: Risk Label & Score
+    Pipeline->>Analitik: Analisis Cohort
+    Analitik-->>Pipeline: Hasil Cohort
+    Pipeline->>Export: Export Chart, Heatmap, Excel
+    Export-->>Dashboard: File Output (Excel, Heatmap HTML)
+    Pipeline->>Dashboard: Load hasil scoring & visualisasi
+    Dashboard->>User: Interaktif Filter, Chart, Heatmap, Cluster
+```
 
 
 ## Inti Alur Kerja
