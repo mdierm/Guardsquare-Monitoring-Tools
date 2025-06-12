@@ -200,21 +200,27 @@ streamlit run dashboard.py
 ## **Diagram Sederhana Alur Pipeline**
 
 ```
-1. Data Device Pelanggar  +  2. Data Onboarding Nasabah
-           |                      |
-           +----------+-----------+
-                      |
-                 3. Join DeviceID
-                      |
-           4. Reverse Geocoding (cache)
-                      |
-              5. Risk Scoring per CIF
-                      |
-           +----------+----------+
-           |                     |
-   6. Analitik Cohort      7. Visualisasi
-           |                     |
-     8. Summary Impact     9. Export Output
+flowchart TD
+    A[Data Device Pelanggar<br>(Guardsquare/ThreatCast)]
+    B[Data Onboarding Nasabah<br>(Wondr)]
+    C[Join DeviceID dengan Data Onboarding]
+    D[Reverse Geocoding<br>(Latitude, Longitude → Region/Provinsi)]
+    E[Risk Scoring per CIF<br>(Transient/Persistent/Critical)]
+    F[Analitik Cohort]
+    G[Visualisasi & Export<br>(Bar Chart, Heatmap HTML, Excel)]
+    H[Web Dashboard Interaktif<br>(Streamlit)]
+    I[Summary Impact & Progress Info]
+
+    A --> C
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    E --> G
+    G --> H
+    E --> I
+    F --> H
+    I --> H
 ```
 
 ---
