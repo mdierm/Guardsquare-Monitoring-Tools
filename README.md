@@ -1,5 +1,3 @@
----
-
 # 📊 Risk Scoring Device/CIF Per Region
 
 **(Guardsquare + Wondr Analytics & Dashboard)**
