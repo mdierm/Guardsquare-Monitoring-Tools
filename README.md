@@ -1,22 +1,24 @@
+---
+
 # 📊 Risk Scoring Device/CIF Per Region
 
 **(Guardsquare + Wondr Analytics & Dashboard)**
 
 ---
 
-## **🔎 Penjelasan Singkat**
+## 🔎 Penjelasan Singkat
 
 Tools ini dibuat untuk:
 
-* **Mendeteksi, memetakan, dan memvisualisasikan risiko device rooting/jailbreak** pada nasabah aplikasi Wondr
-* **Join data device pelanggar** (ThreatCast/Guardsquare) dengan data onboarding (CIF, lokasi)
-* **Menghitung risk score dinamis** per nasabah (transient, persistent, critical)
-* **Mapping risk geospasial** ke wilayah Indonesia
-* **Visualisasi interaktif** dengan dashboard web (Streamlit)
+* **Mendeteksi, memetakan, dan memvisualisasikan risiko device rooting/jailbreak** pada nasabah aplikasi Wondr.
+* **Join data device pelanggar** (ThreatCast/Guardsquare) dengan data onboarding (CIF, lokasi).
+* **Menghitung risk score dinamis** per nasabah (transient, persistent, critical).
+* **Mapping risk geospasial** ke wilayah Indonesia.
+* **Visualisasi interaktif** dengan dashboard web (Streamlit).
 
 ---
 
-## **📁 Struktur File**
+## 📁 Struktur File
 
 ```
 risk_pipeline.py        # Pipeline analitik risk scoring & mapping wilayah
@@ -32,9 +34,9 @@ risk_heatmap.html      # Heatmap geospasial (HTML, buka di browser)
 
 ---
 
-## **⚙️ Cara Penggunaan**
+## ⚙️ Cara Penggunaan
 
-### **1. Persiapan**
+### 1. Persiapan
 
 * Siapkan file Excel **device pelanggar** dan **data onboarding** (lihat contoh struktur `/data/`)
 * Install dependensi:
@@ -45,21 +47,21 @@ risk_heatmap.html      # Heatmap geospasial (HTML, buka di browser)
 
 ---
 
-### **2. Jalankan Pipeline Analitik**
+### 2. Jalankan Pipeline Analitik
 
 ```sh
 python risk_pipeline.py
 ```
 
-* Output:
+Output:
 
-  * `hasil_risk_scoring_per_cif_YYYYMMDD_HHMM.xlsx`
-  * `risk_heatmap.html`
-  * `region_cache.pkl` (cache reverse geocoding otomatis)
+* `hasil_risk_scoring_per_cif_YYYYMMDD_HHMM.xlsx`
+* `risk_heatmap.html`
+* `region_cache.pkl` (cache reverse geocoding otomatis)
 
 ---
 
-### **3. Jalankan Dashboard Interaktif**
+### 3. Jalankan Dashboard Interaktif
 
 ```sh
 streamlit run dashboard.py
@@ -71,133 +73,108 @@ streamlit run dashboard.py
 
 ---
 
-### **4. Navigasi Dashboard**
+### 4. Navigasi Dashboard
 
-* **Risk per Region**: Total risk score per wilayah (bar chart)
-* **Trend Cohort**: Tren risk score berdasarkan cohort onboarding nasabah
-* **Heatmap**: Sebaran lokasi risk device (onboarding pertama)
-* **Cluster Analysis**: Deteksi cluster/hotspot risk (K-Means)
-* **Demografi**: Visual segmentasi jika data demografi tersedia
+* **Risk per Region:** Total risk score per wilayah (bar chart)
+* **Trend Cohort:** Tren risk score berdasarkan cohort onboarding nasabah
+* **Heatmap:** Sebaran lokasi risk device (onboarding pertama)
+* **Cluster Analysis:** Deteksi cluster/hotspot risk (K-Means)
+* **Demografi:** Visual segmentasi jika data demografi tersedia
 
 ---
 
-### **5. Tips & Troubleshooting**
+### 5. Tips & Troubleshooting
 
-* **Jika mapping region lama**: Cek koneksi internet, gunakan cache, atau jalankan di batch kecil.
-* **Jika file risk scoring hasil pipeline ada timestamp**:
+* Jika mapping region lama: cek koneksi internet, gunakan cache, atau jalankan di batch kecil.
+* Jika file risk scoring hasil pipeline ada timestamp:
   Pastikan dashboard.py menggunakan file hasil terbaru (`hasil_risk_scoring_per_cif_YYYYMMDD_HHMM.xlsx`)
-* **Jika ada kolom baru/hilang**:
+* Jika ada kolom baru/hilang:
   Script pipeline & dashboard otomatis menyesuaikan jika kolom demografi tidak ada.
-* **Jika heatmap kosong/cluster error**:
+* Jika heatmap kosong/cluster error:
   Cek apakah ada cukup data titik (≥2 lokasi).
 
 ---
 
-## **💡 Fitur Lanjutan**
+## 💡 Fitur Lanjutan
 
-* **Cache geocoding otomatis** (region\_cache.pkl, bisa reuse next run)
-* **Ekspor heatmap ke HTML untuk presentasi/audit**
-* **Otomatis summary nasabah terdampak dan risk per wilayah**
-* **Cocok untuk audit, BI, reporting, compliance risk device**
-
----
-
-## **🚦 Catatan**
-
-* **Lokasi yang dianalisis = lokasi onboarding pertama device**
-  (bukan lokasi login/transaksi harian)
-* **Pipeline & dashboard siap di-deploy ke server/cloud internal**
-* **Jika ingin fitur baru (alert notifikasi, PDF report, dsb.), tinggal request!**
+* Cache geocoding otomatis (`region_cache.pkl`, bisa reuse next run)
+* Ekspor heatmap ke HTML untuk presentasi/audit
+* Otomatis summary nasabah terdampak dan risk per wilayah
+* Cocok untuk audit, BI, reporting, compliance risk device
 
 ---
 
-## **🔄 Alur Kerja Script Risk Scoring Device/CIF Per Region**
+## 🚦 Catatan
+
+* Lokasi yang dianalisis = lokasi onboarding pertama device (bukan lokasi login/transaksi harian)
+* Pipeline & dashboard siap di-deploy ke server/cloud internal
+* Jika ingin fitur baru (alert notifikasi, PDF report, dsb.), tinggal request!
 
 ---
 
-### **A. Pipeline Analitik (`risk_pipeline.py`)**
+## 🔄 Alur Kerja Script Risk Scoring Device/CIF Per Region
+
+---
+
+### A. Pipeline Analitik (`risk_pipeline.py`)
 
 1. **Load Data**
-
-   * Membaca file DEVICE\_ID pelanggar dari Guardsquare/ThreatCast (`Final Data Unique ID - Februari 2025.xlsx`)
-   * Membaca file data onboarding nasabah dari Wondr (`export_detail.xlsx`)
+   Membaca file DEVICE\_ID pelanggar dari Guardsquare/ThreatCast dan file onboarding nasabah dari Wondr.
 
 2. **Validasi Kolom**
-
-   * Memastikan kolom wajib seperti `DEVICE_ID`, `CIF`, `LATITUDE`, `LONGITUDE`, dan `CREATED_TIME` tersedia.
+   Memastikan kolom wajib seperti `DEVICE_ID`, `CIF`, `LATITUDE`, `LONGITUDE`, dan `CREATED_TIME` tersedia.
 
 3. **Join Data**
-
-   * Melakukan pencocokan (join) antara device pelanggar dan data onboarding, sehingga hanya nasabah nyata yang dianalisis.
+   Join antara device pelanggar dan data onboarding, hanya nasabah nyata yang dianalisis.
 
 4. **Mapping Lokasi (Reverse Geocoding)**
-
-   * Mengubah koordinat latitude/longitude menjadi nama region/provinsi/kota dengan **caching** (agar efisien dan cepat).
-   * Hasil mapping disimpan dalam cache (`region_cache.pkl`) agar proses berikutnya lebih cepat.
+   Koordinat latitude/longitude menjadi nama region/provinsi/kota dengan caching otomatis.
 
 5. **Risk Scoring per CIF**
+   Menghitung risk score setiap nasabah (CIF) berdasarkan pola:
 
-   * Menghitung risk score setiap nasabah (CIF) berdasarkan pola:
-
-     * **Transient:** hanya 1 device, hanya 1 bulan
-     * **Persistent:** 1 device, >1 bulan
-     * **Multi-device:** >1 device, 1 bulan
-     * **Critical:** >1 device, >1 bulan
+   * Transient: 1 device, 1 bulan
+   * Persistent: 1 device, >1 bulan
+   * Multi-device: >1 device, 1 bulan
+   * Critical: >1 device, >1 bulan
 
 6. **Analitik Cohort**
-
-   * Menganalisis tren risk berdasarkan cohort onboarding nasabah (bulan onboarding pertama).
+   Tren risk berdasarkan cohort onboarding nasabah.
 
 7. **Visualisasi**
-
-   * Membuat bar chart total dan rata-rata risk score per region.
-   * Membuat heatmap geospasial (HTML) untuk distribusi risk di seluruh Indonesia.
+   Bar chart total/rata-rata risk score per region & heatmap geospasial HTML.
 
 8. **Summary Impact**
-
-   * Menampilkan ringkasan jumlah nasabah terdampak, breakdown transient/persistent/critical.
+   Ringkasan jumlah nasabah terdampak, breakdown transient/persistent/critical.
 
 9. **Export Output**
-
-   * Menyimpan hasil scoring ke file Excel (dengan timestamp).
-   * Menyimpan heatmap ke HTML.
+   Simpan hasil ke Excel (timestamped) dan heatmap ke HTML.
 
 10. **Progress Info**
-
-    * Selama eksekusi, script menampilkan status dan info summary di console agar user tahu progress setiap step.
+    Selama eksekusi, script menampilkan status dan info summary di console.
 
 ---
 
-### **B. Dashboard Interaktif (`dashboard.py`)**
+### B. Dashboard Interaktif (`dashboard.py`)
 
 1. **Load Data Output Pipeline**
-
-   * Membaca file Excel hasil scoring dari pipeline (`hasil_risk_scoring_per_cif_YYYYMMDD_HHMM.xlsx`).
+   Membaca file Excel hasil scoring pipeline.
 
 2. **Filter & Navigasi**
-
-   * User dapat memfilter cohort, region, dan risk type.
-   * Jumlah data hasil filter selalu diinformasikan (progress info).
+   Filter cohort, region, risk type, jumlah data hasil filter selalu diinformasikan.
 
 3. **Tab Visualisasi**
-
-   * **Risk per Region**: Bar chart total risk score per wilayah.
-   * **Trend Cohort**: Line chart rata-rata risk score per cohort onboarding.
-   * **Heatmap**: Peta sebaran lokasi onboarding device pelanggar.
-   * **Cluster Analysis**: Deteksi hotspot risk via K-Means (dengan slider jumlah cluster).
-   * **Demografi (jika ada)**: Bar chart segmentasi risk per gender/tipe nasabah.
+   Risk per Region, Trend Cohort, Heatmap, Cluster Analysis, Demografi (jika ada).
 
 4. **Progress Info & Warning**
-
-   * Muncul otomatis jika data hasil filter sedikit/tidak cukup untuk visual tertentu (heatmap/cluster).
+   Muncul otomatis jika data hasil filter sedikit/tidak cukup untuk visual tertentu.
 
 5. **Keterangan Sidebar**
-
-   * Penjelasan workflow, filter, dan batasan tools untuk user.
+   Penjelasan workflow, filter, dan batasan tools untuk user.
 
 ---
 
-## **Diagram Sederhana Alur Pipeline**
+## Diagram Alur Pipeline
 
 ```mermaid
 flowchart TD
@@ -221,12 +198,11 @@ G --> H
 E --> I
 F --> H
 I --> H
-
 ```
 
 ---
 
-## **Inti Alur Kerja**
+## Inti Alur Kerja
 
 * **Input:** Data device pelanggar & data onboarding
 * **Proses:** Join → mapping lokasi → scoring risk → analitik cohort/region
@@ -234,9 +210,7 @@ I --> H
 
 ---
 
-**Tools ini memastikan risk analytic berbasis device & region hanya memakai data yang valid dan siap presentasi ke audit/BI.**
-**Alur ini juga sangat fleksibel—jika data atau model scoring berubah, pipeline bisa langsung diadaptasi.**
+Tools ini memastikan risk analytic berbasis device & region hanya memakai data yang valid dan siap presentasi ke audit/BI.
+Alur ini juga sangat fleksibel—jika data atau model scoring berubah, pipeline bisa langsung diadaptasi.
 
 ---
-
-
