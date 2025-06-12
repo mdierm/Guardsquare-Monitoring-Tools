@@ -66,7 +66,7 @@ streamlit run dashboard.py
 ```
 
 * Buka browser ke: [http://localhost:8501](http://localhost:8501)
-* **Dashboard siap dipakai tim BI, audit, risk, management**
+* **Dashboard Risk Management**
 * Fitur: filter cohort, region, risk type; bar chart; trend cohort; heatmap; cluster analysis
 
 ---
@@ -210,8 +210,6 @@ sequenceDiagram
 
 ---
 
-Tools ini memastikan risk analytic berbasis device & region hanya memakai data yang valid dan siap presentasi ke audit/BI.
-Alur ini juga sangat fleksibel—jika data atau model scoring berubah, pipeline bisa langsung diadaptasi.
+[Summary Tool](summary.md)
 
 ---
-[Summary Tool](summary.md)
