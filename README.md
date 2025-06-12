@@ -215,4 +215,4 @@ Alur ini juga sangat fleksibel—jika data atau model scoring berubah, pipeline 
 
 ---
 
-*(summary.md)[summary.md]
+*[Summary Tool](summary.md)
