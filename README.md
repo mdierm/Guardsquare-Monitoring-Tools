@@ -199,16 +199,16 @@ streamlit run dashboard.py
 
 ## **Diagram Sederhana Alur Pipeline**
 
-```
+```mermaid
 flowchart TD
-    A[Data Device Pelanggar<br>(Guardsquare/ThreatCast)]
-    B[Data Onboarding Nasabah<br>(Wondr)]
+    A[Data Device Pelanggar\n(Guardsquare/ThreatCast)]
+    B[Data Onboarding Nasabah\n(Wondr)]
     C[Join DeviceID dengan Data Onboarding]
-    D[Reverse Geocoding<br>(Latitude, Longitude → Region/Provinsi)]
-    E[Risk Scoring per CIF<br>(Transient/Persistent/Critical)]
+    D[Reverse Geocoding\n(Latitude, Longitude → Region)]
+    E[Risk Scoring per CIF\n(Transient/Persistent/Critical)]
     F[Analitik Cohort]
-    G[Visualisasi & Export<br>(Bar Chart, Heatmap HTML, Excel)]
-    H[Web Dashboard Interaktif<br>(Streamlit)]
+    G[Visualisasi & Export\n(Bar Chart, Heatmap, Excel)]
+    H[Web Dashboard Interaktif\n(Streamlit)]
     I[Summary Impact & Progress Info]
 
     A --> C
@@ -221,8 +221,8 @@ flowchart TD
     E --> I
     F --> H
     I --> H
-
 ```
+
 
 ---
 
