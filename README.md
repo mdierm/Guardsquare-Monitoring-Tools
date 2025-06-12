@@ -214,3 +214,6 @@ Tools ini memastikan risk analytic berbasis device & region hanya memakai data y
 Alur ini juga sangat fleksibel—jika data atau model scoring berubah, pipeline bisa langsung diadaptasi.
 
 ---
+
+**Pustaka:**
+(Summary)[summary.md]
