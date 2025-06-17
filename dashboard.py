@@ -101,6 +101,44 @@ detail_time = detail[
     (detail["CREATED_TIME"].dt.date <= timeline_range[1]) &
     (detail["GRID_ID"].isin(grid_filtered["GRID_ID"]))
 ]
+# === Formulasi Risk Score ===
+faceattack = detail_time[detail_time["MESSAGE_ORIGIN"].str.lower().str.contains("faceattack", na=False)]
+faceattack_per_grid = faceattack.groupby("GRID_ID").size().rename("faceattack_count")
+
+device_sharing = detail_time.groupby("DEVICE_ID")["CIF"].nunique()
+device_sharing_ids = device_sharing[device_sharing > 1].index.tolist()
+sharing_per_grid = detail_time[detail_time["DEVICE_ID"].isin(device_sharing_ids)]
+sharing_count = sharing_per_grid.groupby("GRID_ID")["DEVICE_ID"].nunique().rename("sharing_count")
+
+failed_ratio = detail_time.groupby("GRID_ID")["TEMPORARY_USER_STATUS"].apply(
+    lambda x: (x.str.lower() == "failed").sum() / len(x)
+).rename("failed_ratio")
+
+scenario_flag = detail_time[detail_time["SCENARIO"].str.contains("REACTIVATION|RESET|FORGOT", na=False, case=False)]
+scenario_per_grid = scenario_flag.groupby("GRID_ID").size().rename("high_risk_scenario")
+
+cif_per_grid = detail_time.groupby("GRID_ID")["CIF"].nunique().rename("cif_count")
+
+risk_df = grid_filtered.set_index("GRID_ID").copy()
+risk_df = risk_df.join(faceattack_per_grid).join(sharing_count).join(failed_ratio).join(scenario_per_grid).join(cif_per_grid)
+risk_df = risk_df.fillna(0)
+
+risk_df["faceattack_norm"] = risk_df["faceattack_count"] / max(risk_df["faceattack_count"].max(), 1)
+risk_df["sharing_norm"] = risk_df["sharing_count"] / max(risk_df["sharing_count"].max(), 1)
+
+risk_df["mass_flag"] = (risk_df["cif_count"] > 10).astype(int)
+risk_df["scenario_flag"] = (risk_df["high_risk_scenario"] > 0).astype(int)
+
+risk_df["Risk_Score_Final"] = (
+    0.25 * risk_df["faceattack_norm"] +
+    0.25 * risk_df["sharing_norm"] +
+    0.20 * risk_df["failed_ratio"] +
+    0.15 * risk_df["mass_flag"] +
+    0.15 * risk_df["scenario_flag"]
+)
+
+grid_filtered = grid_filtered.merge(risk_df[["Risk_Score_Final"]], on="GRID_ID", how="left")
+
 
 if grid_filtered.empty:
     st.warning("⚠️ Tidak ada data sesuai filter.")
