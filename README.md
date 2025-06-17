@@ -1,215 +1,192 @@
-# 📊 Risk Scoring Device/CIF Per Region
+# Risk Grid Guardsquare Dashboard
 
-**(Guardsquare + Wondr Analytics & Dashboard)**
+### 📘 Penjelasan Komprehensif
 
----
+#### 🧩 Tujuan Pencocokan Data
 
-## 🔎 Penjelasan Singkat
+Proses pencocokan ini bertujuan untuk **menggabungkan informasi deteksi risiko dari sistem Threatcast (GS)** dengan **data aktivitas pengguna yang tercatat dalam sistem onboarding (export\_detail)**. Hasil pencocokan akan memberikan konteks yang lebih lengkap untuk setiap perangkat, termasuk:
 
-Tools ini dibuat untuk:
+* Lokasi penggunaan
+* Model perangkat & sistem operasi
+* Status keamanan atau risiko perangkat
+* Aktivitas dan identitas nasabah (CIF)
 
-* **Mendeteksi, memetakan, dan memvisualisasikan risiko device rooting/jailbreak** pada nasabah aplikasi Wondr.
-* **Join data device pelanggar** (ThreatCast/Guardsquare) dengan data onboarding (CIF, lokasi).
-* **Menghitung risk score dinamis** per nasabah (transient, persistent, critical).
-* **Mapping risk geospasial** ke wilayah Indonesia.
-* **Visualisasi interaktif** dengan dashboard web (Streamlit).
+#### 🔗 Mekanisme Join
 
----
-
-## 📁 Struktur File
-
-```
-risk_pipeline.py        # Pipeline analitik risk scoring & mapping wilayah
-dashboard.py           # Streamlit dashboard interaktif
-requirements.txt       # Daftar dependensi Python
-region_cache.pkl       # (otomatis, cache hasil geocoding)
-hasil_risk_scoring_per_cif_YYYYMMDD_HHMM.xlsx # Output risk scoring
-risk_heatmap.html      # Heatmap geospasial (HTML, buka di browser)
-/data/
-   |--- Final Data Unique ID - Februari 2025.xlsx   # Data device pelanggar (Guardsquare)
-   |--- export_detail.xlsx                          # Data onboarding Wondr (nasabah)
+```python
+gs['app_user_id'] == export_detail['DEVICE_ID']
 ```
 
+#### 📊 Data Yang Digabungkan
+
+**Dari `export_detail`:**
+
+* `DEVICE_ID`, `LATITUDE`, `LONGITUDE`, `CIF`, `CREATED_TIME`, `Region`, `SCENARIO`, `TEMPORARY_USER_STATUS`
+
+**Dari `GS (Threatcast)`:**
+
+* `device`, `os_version`, `reasons_for_detection`
+
+#### 🧠 Proses Transformasi Tambahan
+
+* Penambahan `GRID_ID` berdasarkan koordinat.
+* Klasifikasi audit: FaceAttack, DeviceSharing, Mass/Cluster, Normal.
+* Penentuan warna & high-risk grid berdasarkan skor risiko.
+
+#### 🗂️ Output Akhir
+
+* `hasil_grid_agg.xlsx` → Ringkasan per grid.
+* `hasil_grid_detail.xlsx` → Data granular per perangkat & nasabah.
+
+#### 🎯 Manfaat
+
+* Pelacakan risiko geografis.
+* Deteksi anomali & pola serangan.
+* Dasar pengambilan keputusan & investigasi.
+
 ---
 
-## ⚙️ Cara Penggunaan
+📍 **Risk Grid Guardsquare Dashboard** adalah aplikasi visualisasi interaktif berbasis Streamlit yang digunakan untuk:
 
-### 1. Persiapan
-
-* Siapkan file Excel **device pelanggar** dan **data onboarding** (lihat contoh struktur `/data/`)
-* Install dependensi:
-
-  ```sh
-  pip install -r requirements.txt
-  ```
+* Memetakan sebaran perangkat dan pengguna berdasarkan data geolokasi.
+* Menilai tingkat risiko berdasarkan skor dan pola anomali.
+* Mendeteksi cluster risiko menggunakan DBSCAN.
+* Mengekspor data analitik untuk keperluan pelaporan dan audit.
 
 ---
 
-### 2. Jalankan Pipeline Analitik
+## 🚀 Fitur Utama
 
-```sh
-python risk_pipeline.py
+* **Peta Interaktif:** Visualisasi titik risiko berdasarkan lat/lon.
+* **Cluster Detection:** Identifikasi konsentrasi risiko geografis.
+* **Ringkasan Statistik:** Total grid, high risk, unique device.
+* **Filter Wilayah & Waktu:** Filter berdasarkan region dan rentang tanggal.
+* **Ekspor Data:** Unduh hasil filter dalam format CSV dan Excel.
+* **Geocoding Wilayah:** Menggunakan geopy + cache lokal untuk konversi koordinat ke nama wilayah.
+
+---
+
+## 🧱 Struktur Proyek
+
+* `risk_grid.py` → Script backend untuk preprocessing, geocoding, grid mapping, audit klasifikasi.
+* `dashboard_patched_with_recommendations.py` → Streamlit dashboard UI interaktif.
+* `hasil_grid_agg.xlsx` → Output ringkasan per grid (di-generate dari script).
+* `hasil_grid_detail.xlsx` → Output detail device & nasabah.
+
+---
+
+## 🔧 Instalasi & Persiapan
+
+### 1. Clone Repo
+
+```bash
+git clone https://github.com/yourusername/risk-grid-dashboard.git
+cd risk-grid-dashboard
 ```
 
-Output:
+### 2. Install Dependencies
 
-* `hasil_risk_scoring_per_cif_YYYYMMDD_HHMM.xlsx`
-* `risk_heatmap.html`
-* `region_cache.pkl` (cache reverse geocoding otomatis)
-
----
-
-### 3. Jalankan Dashboard Interaktif
-
-```sh
-streamlit run dashboard.py
+```bash
+pip install -r requirements.txt
 ```
 
-* Buka browser ke: [http://localhost:8501](http://localhost:8501)
-* **Dashboard Risk Management**
-* Fitur: filter cohort, region, risk type; bar chart; trend cohort; heatmap; cluster analysis
+### 3. Siapkan Data
+
+Letakkan file Excel berikut di root folder:
+
+* `Data Excel GS Feb 25.xlsx`
+* `export_detail.xlsx`
+
+### 4. Jalankan Proses Preprocessing
+
+```bash
+python risk_grid.py
+```
+
+Ini akan menghasilkan dua file: `hasil_grid_agg.xlsx` dan `hasil_grid_detail.xlsx`.
+
+### 5. Jalankan Dashboard
+
+```bash
+streamlit run dashboard_patched_with_recommendations.py
+```
 
 ---
 
-### 4. Navigasi Dashboard
+## 📁 requirements.txt
 
-* **Risk per Region:** Total risk score per wilayah (bar chart)
-* **Trend Cohort:** Tren risk score berdasarkan cohort onboarding nasabah
-* **Heatmap:** Sebaran lokasi risk device (onboarding pertama)
-* **Cluster Analysis:** Deteksi cluster/hotspot risk (K-Means)
-* **Demografi:** Visual segmentasi jika data demografi tersedia
-
----
-
-### 5. Tips & Troubleshooting
-
-* Jika mapping region lama: cek koneksi internet, gunakan cache, atau jalankan di batch kecil.
-* Jika file risk scoring hasil pipeline ada timestamp:
-  Pastikan dashboard.py menggunakan file hasil terbaru (`hasil_risk_scoring_per_cif_YYYYMMDD_HHMM.xlsx`)
-* Jika ada kolom baru/hilang:
-  Script pipeline & dashboard otomatis menyesuaikan jika kolom demografi tidak ada.
-* Jika heatmap kosong/cluster error:
-  Cek apakah ada cukup data titik (≥2 lokasi).
+```
+streamlit
+pandas
+folium
+streamlit-folium
+scikit-learn
+tqdm
+geopy
+openpyxl
+xlsxwriter
+numpy
+```
 
 ---
 
-## 💡 Fitur Lanjutan
+## 🛡️ Audit Klasifikasi (Heuristik)
 
-* Cache geocoding otomatis (`region_cache.pkl`, bisa reuse next run)
-* Ekspor heatmap ke HTML untuk presentasi/audit
-* Otomatis summary nasabah terdampak dan risk per wilayah
-* Cocok untuk audit, BI, reporting, compliance risk device
-
----
-
-## 🚦 Catatan
-
-* Lokasi yang dianalisis = lokasi onboarding pertama device (bukan lokasi login/transaksi harian)
-* Pipeline & dashboard siap di-deploy ke server/cloud internal
-* Jika ingin fitur baru (alert notifikasi, PDF report, dsb.), tinggal request!
+* **FaceAttack** → Terindikasi serangan wajah.
+* **DeviceSharing** → Banyak CIF dengan satu perangkat.
+* **Mass/Cluster** → Banyak CIF dan banyak perangkat di satu lokasi.
+* **Normal** → Tidak terindikasi anomali.
 
 ---
 
-## 🔄 Alur Kerja Script Risk Scoring Device/CIF Per Region
+## 🔄 Flow Pencocokan Data
 
----
-
-### A. Pipeline Analitik (`risk_pipeline.py`)
-
-1. **Load Data**
-   Membaca file DEVICE\_ID pelanggar dari Guardsquare/ThreatCast dan file onboarding nasabah dari Wondr.
-
-2. **Validasi Kolom**
-   Memastikan kolom wajib seperti `DEVICE_ID`, `CIF`, `LATITUDE`, `LONGITUDE`, dan `CREATED_TIME` tersedia.
-
-3. **Join Data**
-   Join antara device pelanggar dan data onboarding, hanya nasabah nyata yang dianalisis.
-
-4. **Mapping Lokasi (Reverse Geocoding)**
-   Koordinat latitude/longitude menjadi nama region/provinsi/kota dengan caching otomatis.
-
-5. **Risk Scoring per CIF**
-   Menghitung risk score setiap nasabah (CIF) berdasarkan pola:
-
-   * Transient: 1 device, 1 bulan
-   * Persistent: 1 device, >1 bulan
-   * Multi-device: >1 device, 1 bulan
-   * Critical: >1 device, >1 bulan
-
-6. **Analitik Cohort**
-   Tren risk berdasarkan cohort onboarding nasabah.
-
-7. **Visualisasi**
-   Bar chart total/rata-rata risk score per region & heatmap geospasial HTML.
-
-8. **Summary Impact**
-   Ringkasan jumlah nasabah terdampak, breakdown transient/persistent/critical.
-
-9. **Export Output**
-   Simpan hasil ke Excel (timestamped) dan heatmap ke HTML.
-
-10. **Progress Info**
-    Selama eksekusi, script menampilkan status dan info summary di console.
-
----
-
-### B. Dashboard Interaktif (`dashboard.py`)
-
-1. **Load Data Output Pipeline**
-   Membaca file Excel hasil scoring pipeline.
-
-2. **Filter & Navigasi**
-   Filter cohort, region, risk type, jumlah data hasil filter selalu diinformasikan.
-
-3. **Tab Visualisasi**
-   Risk per Region, Trend Cohort, Heatmap, Cluster Analysis, Demografi (jika ada).
-
-4. **Progress Info & Warning**
-   Muncul otomatis jika data hasil filter sedikit/tidak cukup untuk visual tertentu.
-
-5. **Keterangan Sidebar**
-   Penjelasan workflow, filter, dan batasan tools untuk user.
-
----
-
-## Diagram Alur Pipeline
-
+Diagram berikut menunjukkan bagaimana data dari `export_detail` dan `GS (Threatcast)` digabungkan berdasarkan `DEVICE_ID` / `app_user_id`, sehingga menghasilkan data yang diperkaya:
 
 ```mermaid
-sequenceDiagram
-    participant Guardsquare as Device Pelanggar (Guardsquare)
-    participant Wondr as Onboarding Nasabah (Wondr)
-    participant Pipeline as Risk Scoring Pipeline
-    participant Map as Reverse Geocoding
-    participant Risk as Risk Scoring Engine
-    participant Analitik as Analitik Cohort
-    participant Export as Export & Visualisasi
-    participant Dashboard as Web Dashboard
+flowchart LR
+    A[export_detail] -->|Join on DEVICE_ID = app_user_id| B[GS (Threatcast)]
+    B --> C[Hasil Join]
 
-    Guardsquare->>Pipeline: Kirim DEVICE_ID pelanggar
-    Wondr->>Pipeline: Kirim data onboarding (DEVICE_ID, CIF, lokasi)
-    Pipeline->>Pipeline: Join DEVICE_ID & Onboarding
-    Pipeline->>Map: Mapping Lat/Lon ke Region
-    Map-->>Pipeline: Region/Provinsi
-    Pipeline->>Risk: Hitung Risk Scoring per CIF
-    Risk-->>Pipeline: Risk Label & Score
-    Pipeline->>Analitik: Analisis Cohort
-    Analitik-->>Pipeline: Hasil Cohort
-    Pipeline->>Export: Export Chart, Heatmap, Excel
-    Export-->>Dashboard: File Output (Excel, Heatmap HTML)
-    Pipeline->>Dashboard: Load hasil scoring & visualisasi
-    Dashboard->>User: Interaktif Filter, Chart, Heatmap, Cluster
+    subgraph A ["export_detail"]
+        A1[DEVICE_ID]
+        A2[LATITUDE]
+        A3[CIF]
+        A4[CREATED_TIME]
+    end
+
+    subgraph B ["GS (Threatcast)"]
+        B1[app_user_id]
+        B2[device]
+        B3[os_version]
+        B4[reasons_for_detection]
+    end
+
+    subgraph C ["Hasil Join"]
+        C1[DEVICE_ID]
+        C2[GRID_ID]
+        C3[Device_Model (from device)]
+        C4[OS (from os_version)]
+        C5[Reasons (from reasons_for_detection)]
+    end
 ```
 
+---
 
-## Inti Alur Kerja
+## 📌 Catatan
 
-* **Input:** Data device pelanggar & data onboarding
-* **Proses:** Join → mapping lokasi → scoring risk → analitik cohort/region
-* **Output:** Tabel scoring CIF, heatmap HTML, dashboard web interaktif
+* Proyek ini menggunakan reverse geocoding dari [Nominatim](https://nominatim.openstreetmap.org/) dengan caching untuk efisiensi.
+* File Excel input dan output tidak di-commit ke repo karena sifatnya sensitif.
 
 ---
 
-[Summary Tool](summary.md)
+## 👤 Author
+
+* ERM
+* Kontribusi oleh: MDI
 
 ---
+
+## 📄 Lisensi
+
+Open-source untuk kebutuhan internal & riset. Gunakan dengan bijak dan sesuai etika data.
