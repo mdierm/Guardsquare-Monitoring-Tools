@@ -161,14 +161,14 @@ flowchart LR
         A4
     end
 
-    subgraph B [GS (Threatcast)]
+    subgraph B [GS_Threatcast]
         B1
         B2[device]
         B3[os_version]
         B4[reasons_for_detection]
     end
 
-    subgraph C [Hasil Join]
+    subgraph C [Hasil_Join]
         C1
         C2
         C3
