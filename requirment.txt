@@ -1,0 +1,10 @@
+streamlit
+pandas
+folium
+streamlit-folium
+scikit-learn
+tqdm
+geopy
+openpyxl
+xlsxwriter
+numpy
