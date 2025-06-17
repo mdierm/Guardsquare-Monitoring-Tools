@@ -151,23 +151,41 @@ for _, row in grid_filtered.iterrows():
         popup=folium.Popup(popup_html, max_width=500)
     ).add_to(detail_layer)
 
-# Tambahkan marker presisi berdasarkan klasifikasi
+# Tambahkan marker presisi berdasarkan multi-kondisi
 for _, row in detail_time.iterrows():
     if pd.notna(row.get('LATITUDE')) and pd.notna(row.get('LONGITUDE')):
         device_id = row.get('DEVICE_ID', '')
         message_origin = str(row.get('MESSAGE_ORIGIN', '')).lower()
         grid_id = row.get('GRID_ID', '')
 
-        if device_id in device_sharing_ids:
-            color = 'blue'
-        elif 'faceattack' in message_origin:
+        is_faceattack = 'faceattack' in message_origin
+        is_sharing = device_id in device_sharing_ids
+        is_cluster = grid_id in clustered_grids
+
+        # Tentukan warna berdasarkan prioritas
+        if is_faceattack:
             color = 'red'
-        elif grid_id in clustered_grids:
+        elif is_sharing and is_cluster:
+            color = 'purple'
+        elif is_sharing:
+            color = 'blue'
+        elif is_cluster:
             color = 'orange'
         else:
             color = 'green'
 
+        # Tentukan label klasifikasi
+        labels = []
+        if is_faceattack:
+            labels.append("FaceAttack")
+        if is_sharing:
+            labels.append("DeviceSharing")
+        if is_cluster:
+            labels.append("Mass/Cluster")
+        classification = ", ".join(labels) if labels else "Normal"
+
         popup_html = f"""
+        <b>Classification:</b> {classification}<br>
         <b>CIF:</b> {row.get('CIF', 'N/A')}<br>
         <b>Device ID:</b> {device_id}<br>
         <b>Device Model:</b> {row.get('DEVICE_MODEL', 'N/A')}<br>
