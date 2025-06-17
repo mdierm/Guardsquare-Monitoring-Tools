@@ -1,9 +1,0 @@
-pandas
-openpyxl
-matplotlib
-geopy
-tqdm
-folium
-streamlit
-streamlit-folium
-scikit-learn
