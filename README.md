@@ -145,29 +145,37 @@ Diagram berikut menunjukkan bagaimana data dari `export_detail` dan `GS (Threatc
 
 ```mermaid
 flowchart LR
-    A[export_detail] -->|Join on DEVICE_ID = app_user_id| B[GS (Threatcast)]
-    B --> C[Hasil Join]
+    A1[DEVICE_ID] -->|Join| B1[app_user_id]
+    B1 --> C1[DEVICE_ID]
+    B2 --> C3[Device_Model]
+    B3 --> C4[OS]
+    B4 --> C5[Reasons]
+    A2[LATITUDE] --> C2[GRID_ID]
+    A3[CIF] --> C6[CIF]
+    A4[CREATED_TIME] --> C7[CREATED_TIME]
 
-    subgraph A ["export_detail"]
-        A1[DEVICE_ID]
-        A2[LATITUDE]
-        A3[CIF]
-        A4[CREATED_TIME]
+    subgraph A [export_detail]
+        A1
+        A2
+        A3
+        A4
     end
 
-    subgraph B ["GS (Threatcast)"]
-        B1[app_user_id]
+    subgraph B [GS (Threatcast)]
+        B1
         B2[device]
         B3[os_version]
         B4[reasons_for_detection]
     end
 
-    subgraph C ["Hasil Join"]
-        C1[DEVICE_ID]
-        C2[GRID_ID]
-        C3[Device_Model (from device)]
-        C4[OS (from os_version)]
-        C5[Reasons (from reasons_for_detection)]
+    subgraph C [Hasil Join]
+        C1
+        C2
+        C3
+        C4
+        C5
+        C6
+        C7
     end
 ```
 
