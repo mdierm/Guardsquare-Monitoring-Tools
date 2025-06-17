@@ -1,23 +1,33 @@
-# dashboard2_recommended_final_PATCHED.py
-
 import streamlit as st
 import pandas as pd
 import folium
 from folium.plugins import MarkerCluster
+from folium import FeatureGroup, LayerControl
 from streamlit_folium import st_folium
 from datetime import datetime
 from sklearn.cluster import DBSCAN
 import io
+import re
+import warnings
+
+warnings.filterwarnings("ignore")
 
 st.set_page_config(layout="wide", page_title="Risk Grid Guardsquare Dashboard", initial_sidebar_state="expanded")
 st.title("🛡️ Risk Grid Guardsquare Dashboard")
 
 @st.cache_data
+
 def load_data():
-    grid = pd.read_excel("hasil_grid_agg.xlsx")
-    detail = pd.read_excel("hasil_grid_detail.xlsx")
+    try:
+        grid = pd.read_excel("hasil_grid_agg.xlsx")
+        detail = pd.read_excel("hasil_grid_detail.xlsx")
+    except Exception as e:
+        st.error(f"Gagal memuat data: {e}")
+        st.stop()
+
     if "CREATED_TIME" in detail.columns:
         detail["CREATED_TIME"] = pd.to_datetime(detail["CREATED_TIME"])
+
     grid["Timeline"] = grid["Timeline"].astype(str)
     if "GRID_LAT" not in grid.columns:
         grid["GRID_LAT"] = grid["LATITUDE"]
@@ -45,7 +55,7 @@ with st.sidebar:
     selected_scenario = st.multiselect("Scenario", scenarios)
     selected_reason = st.multiselect("Reasons/Flag", reasons)
     timeline_range = st.slider("Timeline Range", min_value=timeline_min, max_value=timeline_max,
-                            value=(timeline_min, timeline_max), format="YYYY-MM-DD")
+                                value=(timeline_min, timeline_max), format="YYYY-MM-DD")
     search_cif = st.text_input("🔍 Search CIF/Device/Model/Region")
 
     if st.button("🔄 Reset All Filters"):
@@ -60,7 +70,6 @@ with st.sidebar:
     st.markdown(f"High Risk Grid: **{grid['HIGH_RISK'].sum()}** ({(grid['HIGH_RISK'].mean()*100):.2f}%)")
     st.markdown("**Developer:** _Data Analytics Team 2025_")
 
-# ==== Apply filters ====
 filt = grid["Audit"].isin(selected_audit)
 if selected_region != "All":
     filt &= grid["Region"] == selected_region
@@ -69,54 +78,49 @@ if selected_risk == "High Risk Grid":
 elif selected_risk == "Normal Grid":
     filt &= ~grid["HIGH_RISK"]
 if selected_model:
-    filt &= grid["Device_Model"].apply(lambda x: any(m in str(x) for m in selected_model))
+    pattern = '|'.join([re.escape(m) for m in selected_model])
+    filt &= grid["Device_Model"].fillna('').str.contains(pattern, case=False)
 if selected_scenario:
-    filt &= grid["SCENARIO"].apply(lambda x: any(s in str(x) for s in selected_scenario))
+    pattern = '|'.join([re.escape(s) for s in selected_scenario])
+    filt &= grid["SCENARIO"].fillna('').str.contains(pattern, case=False)
 if selected_reason:
-    filt &= grid["Reasons"].apply(lambda x: any(r in str(x) for r in selected_reason))
+    pattern = '|'.join([re.escape(r) for r in selected_reason])
+    filt &= grid["Reasons"].fillna('').str.contains(pattern, case=False)
 if search_cif:
     q = search_cif.lower()
     filt &= (
-        grid["CIFs"].str.lower().str.contains(q) |
-        grid["DEVICE_IDs"].str.lower().str.contains(q) |
-        grid["Device_Model"].str.lower().str.contains(q) |
-        grid["Region"].str.lower().str.contains(q)
+        grid.get("CIFs", pd.Series("", index=grid.index)).fillna('').str.lower().str.contains(q) |
+        grid.get("DEVICE_IDs", pd.Series("", index=grid.index)).fillna('').str.lower().str.contains(q) |
+        grid["Device_Model"].fillna('').str.lower().str.contains(q) |
+        grid["Region"].fillna('').str.lower().str.contains(q)
     )
 
 grid_filtered = grid[filt]
 detail_time = detail[
     (detail["CREATED_TIME"].dt.date >= timeline_range[0]) &
-    (detail["CREATED_TIME"].dt.date <= timeline_range[1])
+    (detail["CREATED_TIME"].dt.date <= timeline_range[1]) &
+    (detail["GRID_ID"].isin(grid_filtered["GRID_ID"]))
 ]
 
 if grid_filtered.empty:
     st.warning("⚠️ Tidak ada data sesuai filter.")
     st.stop()
 
-# ==== Summary Cards ====
 st.markdown("### Grid Risk Summary", unsafe_allow_html=True)
-st.markdown(f"""
-<div style="display: flex; flex-wrap: wrap; gap: 20px; margin: 10px 0 20px;">
-  <div style="flex: 1; background:#f8f8f8; padding:15px; border-radius:10px; text-align: center;">
-    <div style="font-size:18px; color:#888;">Total Grid</div>
-    <div style="font-size:26px; font-weight:bold; color:#d62728;">{len(grid_filtered)}</div>
-  </div>
-  <div style="flex: 1; background:#f8f8f8; padding:15px; border-radius:10px; text-align: center;">
-    <div style="font-size:18px; color:#888;">Total Nasabah</div>
-    <div style="font-size:26px; font-weight:bold; color:#1f77b4;">{detail_time['CIF'].nunique()}</div>
-  </div>
-  <div style="flex: 1; background:#f8f8f8; padding:15px; border-radius:10px; text-align: center;">
-    <div style="font-size:18px; color:#888;">High Risk Grid</div>
-    <div style="font-size:26px; font-weight:bold; color:#ff0000;">{grid_filtered['HIGH_RISK'].sum()}</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
 
-# ==== Map ====
 st.subheader("🗺️ Risk Map")
 m = folium.Map(location=[-2.5, 118], zoom_start=5, tiles='CartoDB positron')
-mc = MarkerCluster().add_to(m)
+mc = MarkerCluster(name="Grid Risk Summary").add_to(m)
+detail_layer = FeatureGroup(name="Detail Grid Info")
+presisi_layer = FeatureGroup(name="Presisi Nasabah/Device")
 
+# Identifikasi klasifikasi tambahan untuk presisi
+device_sharing = detail_time.groupby("DEVICE_ID")["CIF"].nunique()
+device_sharing_ids = device_sharing[device_sharing > 1].index.tolist()
+clustered_grids = detail_time.groupby("GRID_ID").size()
+clustered_grids = clustered_grids[clustered_grids > 10].index.tolist()
+
+# Tambahkan marker untuk Grid Risk Summary
 for _, row in grid_filtered.iterrows():
     folium.CircleMarker(
         location=[row["GRID_LAT"], row["GRID_LON"]],
@@ -125,6 +129,69 @@ for _, row in grid_filtered.iterrows():
         fill_opacity=0.85,
         popup=folium.Popup(f"<b>Grid:</b> {row['GRID_ID']}", max_width=600)
     ).add_to(mc)
+
+# Tambahkan marker untuk Detail Grid Info (layer agregat)
+for _, row in grid_filtered.iterrows():
+    df_grid = detail_time[detail_time["GRID_ID"] == row["GRID_ID"]]
+    popup_html = f"""
+    <b>Grid:</b> {row['GRID_ID']}<br>
+    <b>Region:</b> {row['Region']}<br>
+    <b>Risk Score:</b> {row['Risk_Score']}<br>
+    <b>High Risk:</b> {'Yes' if row['HIGH_RISK'] else 'No'}<br>
+    <b>Total Device:</b> {df_grid['DEVICE_ID'].nunique()}<br>
+    <b>Total CIF:</b> {df_grid['CIF'].nunique()}
+    """
+    folium.CircleMarker(
+        location=[row["GRID_LAT"], row["GRID_LON"]],
+        radius=7,
+        color="black",
+        fill=True,
+        fill_color="black",
+        fill_opacity=0.6,
+        popup=folium.Popup(popup_html, max_width=500)
+    ).add_to(detail_layer)
+
+# Tambahkan marker presisi berdasarkan klasifikasi
+for _, row in detail_time.iterrows():
+    if pd.notna(row.get('LATITUDE')) and pd.notna(row.get('LONGITUDE')):
+        device_id = row.get('DEVICE_ID', '')
+        message_origin = str(row.get('MESSAGE_ORIGIN', '')).lower()
+        grid_id = row.get('GRID_ID', '')
+
+        if device_id in device_sharing_ids:
+            color = 'blue'
+        elif 'faceattack' in message_origin:
+            color = 'red'
+        elif grid_id in clustered_grids:
+            color = 'orange'
+        else:
+            color = 'green'
+
+        popup_html = f"""
+        <b>CIF:</b> {row.get('CIF', 'N/A')}<br>
+        <b>Device ID:</b> {device_id}<br>
+        <b>Device Model:</b> {row.get('DEVICE_MODEL', 'N/A')}<br>
+        <b>OS:</b> {row.get('OS', 'N/A')}<br>
+        <b>Region:</b> {row.get('REGION', 'N/A')}<br>
+        <b>MESSAGE_ORIGIN:</b> {row.get('MESSAGE_ORIGIN', 'N/A')}<br>
+        <b>SCENARIO:</b> {row.get('SCENARIO', 'N/A')}<br>
+        <b>PROVISIONING_NIK_LOG:</b> {row.get('PROVISIONING_NIK_LOG', 'N/A')}<br>
+        <b>TEMPORARY_USER_STATUS:</b> {row.get('TEMPORARY_USER_STATUS', 'N/A')}<br>
+        <b>CREATED_TIME:</b> {row.get('CREATED_TIME', 'N/A')}
+        """
+        folium.CircleMarker(
+            location=[row['LATITUDE'], row['LONGITUDE']],
+            radius=4,
+            color=color,
+            fill=True,
+            fill_color=color,
+            fill_opacity=0.8,
+            popup=folium.Popup(popup_html, max_width=500)
+        ).add_to(presisi_layer)
+
+detail_layer.add_to(m)
+presisi_layer.add_to(m)
+LayerControl(collapsed=False).add_to(m)
 
 m.fit_bounds([
     [grid_filtered["GRID_LAT"].min(), grid_filtered["GRID_LON"].min()],
