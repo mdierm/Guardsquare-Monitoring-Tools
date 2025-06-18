@@ -13,7 +13,10 @@ import warnings
 warnings.filterwarnings("ignore")
 
 st.set_page_config(layout="wide", page_title="Risk Grid Guardsquare Dashboard", initial_sidebar_state="expanded")
-st.title("🛡️ Risk Grid Guardsquare Dashboard")
+
+st.markdown("<h2 style='text-align: center; color: #2F80ED;'>🛡️ Risk Grid Guardsquare Dashboard</h2>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 14px;'>Visualisasi Risiko berdasarkan Data Aktivitas dan Perangkat</p>", unsafe_allow_html=True)
+
 
 @st.cache_data
 
@@ -68,7 +71,7 @@ with st.sidebar:
     st.markdown(f"Total Device: **{detail['DEVICE_ID'].nunique()}**")
     st.markdown(f"Total Nasabah: **{detail['CIF'].nunique()}**")
     st.markdown(f"High Risk Grid: **{grid['HIGH_RISK'].sum()}** ({(grid['HIGH_RISK'].mean()*100):.2f}%)")
-    st.markdown("**Developer:** _Data Analytics Team 2025_")
+    st.markdown("**Developer:** _MDI Team 2025_")
 
 filt = grid["Audit"].isin(selected_audit)
 if selected_region != "All":
@@ -144,9 +147,36 @@ if grid_filtered.empty:
     st.warning("⚠️ Tidak ada data sesuai filter.")
     st.stop()
 
-st.markdown("### Grid Risk Summary", unsafe_allow_html=True)
 
-st.subheader("🗺️ Risk Map")
+
+# === Simplified Grid Risk Summary ===
+st.markdown("### 📊 Grid Risk Summary", unsafe_allow_html=True)
+
+total_grid = grid_filtered.shape[0]
+total_device = detail_time["DEVICE_ID"].nunique()
+total_cif = detail_time["CIF"].nunique()
+high_risk_count = grid_filtered["HIGH_RISK"].sum()
+high_risk_percent = (grid_filtered["HIGH_RISK"].mean() * 100) if total_grid else 0
+
+# Display in 4-box layout
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.markdown("#### 📦 Total Grid")
+    st.markdown(f"<div style='background-color:#f0f2f6;padding:10px;border-radius:8px;font-size:24px;color:black;text-align:center'><b>{total_grid}</b></div>", unsafe_allow_html=True)
+with col2:
+    st.markdown("#### 📱 Total Device")
+    st.markdown(f"<div style='background-color:#f0f2f6;padding:10px;border-radius:8px;font-size:24px;color:black;text-align:center'><b>{total_device}</b></div>", unsafe_allow_html=True)
+with col3:
+    st.markdown("#### 👤 Total Nasabah")
+    st.markdown(f"<div style='background-color:#f0f2f6;padding:10px;border-radius:8px;font-size:24px;color:black;text-align:center'><b>{total_cif}</b></div>", unsafe_allow_html=True)
+with col4:
+    st.markdown("#### 🔥 High Risk")
+    st.markdown(f"<div style='background-color:#ffe6e6;padding:10px;border-radius:8px;font-size:24px;color:black;text-align:center'><b>{high_risk_count} ({high_risk_percent:.2f}%)</b></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 32px;'></div>", unsafe_allow_html=True)
+
+if "Risk_Level" in grid_filtered:
+        st.bar_chart(pd.Series(risk_level_dist), use_container_width=True)
+
 m = folium.Map(location=[-2.5, 118], zoom_start=5, tiles='CartoDB positron')
 mc = MarkerCluster(name="Grid Risk Summary").add_to(m)
 detail_layer = FeatureGroup(name="Detail Grid Info")
@@ -325,3 +355,6 @@ with col2:
     st.download_button("Download Detail (Excel)", detail_xlsx.getvalue(), file_name="filtered_detail.xlsx")
 
 st.markdown("---")
+
+st.markdown("---")
+st.markdown("<p style='text-align: right; font-size: 12px;'>© MDI ERM 2025</p>", unsafe_allow_html=True)
