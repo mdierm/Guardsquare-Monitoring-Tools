@@ -8,6 +8,7 @@ from datetime import datetime
 from sklearn.cluster import DBSCAN
 import io
 import re
+import pygeohash as pgh
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -19,6 +20,21 @@ st.markdown("<p style='text-align: center; font-size: 14px;'>Visualisasi Risiko 
 
 
 @st.cache_data
+
+
+def assign_geohash_id(df, precision=5):
+    def safe_encode(row):
+        try:
+            lat = float(row['LATITUDE'])
+            lon = float(row['LONGITUDE'])
+            if pd.notnull(lat) and pd.notnull(lon) and lat != 0.0 and lon != 0.0:
+                return pgh.encode(lat, lon, precision=precision)
+        except:
+            pass
+        return "UNDEFINED"
+    df['GEOSHASH_ID'] = df.apply(safe_encode, axis=1)
+    return df
+
 
 def load_data():
     try:
@@ -256,9 +272,9 @@ for _, row in detail_time.iterrows():
         <b>Classification:</b> {classification}<br>
         <b>CIF:</b> {row.get('CIF', 'N/A')}<br>
         <b>Device ID:</b> {device_id}<br>
-        <b>Device Model:</b> {row.get('DEVICE_MODEL', 'N/A')}<br>
+        <b>Device Model:</b> {row.get('Device_Model', 'N/A')}<br>
         <b>OS:</b> {row.get('OS', 'N/A')}<br>
-        <b>Region:</b> {row.get('REGION', 'N/A')}<br>
+        <b>Region:</b> {row.get('Region', 'N/A')}<br>
         <b>MESSAGE_ORIGIN:</b> {row.get('MESSAGE_ORIGIN', 'N/A')}<br>
         <b>SCENARIO:</b> {row.get('SCENARIO', 'N/A')}<br>
         <b>PROVISIONING_NIK_LOG:</b> {row.get('PROVISIONING_NIK_LOG', 'N/A')}<br>
@@ -337,6 +353,20 @@ if len(coords) > 2:
                  use_container_width=True)
 else:
     st.info("Tidak cukup data untuk analisis cluster.")
+
+# ==== Geohash Block ====
+st.subheader("🧭 Visualisasi Berbasis Geohash Block")
+geohash_agg = detail.groupby("GEOSHASH_ID").agg({
+    "CIF": "nunique",
+    "DEVICE_ID": "nunique",
+    "MESSAGE_ORIGIN": lambda x: (x.str.contains("faceattack", case=False, na=False)).sum()
+}).rename(columns={
+    "CIF": "Unique_CIF",
+    "DEVICE_ID": "Unique_Device",
+    "MESSAGE_ORIGIN": "FaceAttack_Count"
+}).reset_index()
+
+st.dataframe(geohash_agg, use_container_width=True)
 
 # ==== Export ====
 st.subheader("⬇️ Export Data")
