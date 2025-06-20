@@ -1,10 +1,26 @@
-import pandas as pd
-import numpy as np
-import folium
-from folium.plugins import MarkerCluster
-import pickle
-from tqdm import tqdm
 import os
+import pickle
+import time
+from folium.plugins import MarkerCluster
+from geopy.geocoders import Nominatim
+from tqdm import tqdm
+import folium
+import numpy as np
+import pandas as pd
+import pygeohash
+
+def assign_geohash_id(df, precision=5):
+    def safe_encode(row):
+        try:
+            lat = float(row['LATITUDE'])
+            lon = float(row['LONGITUDE'])
+            if pd.notnull(lat) and pd.notnull(lon) and lat != 0.0 and lon != 0.0:
+                return pygeohash.encode(lat, lon, precision=precision)
+        except:
+            pass
+        return "UNDEFINED"
+    df['GEOSHASH_ID'] = df.apply(safe_encode, axis=1)
+    return df
 
 # ========== KONFIGURASI ==========
 GS_PATH = "Data Excel GS Feb 25.xlsx"
@@ -14,14 +30,20 @@ REGION_CACHE_PATH = "region_cache.pkl"
 OUT_MAP = "risk_grid_map.html"
 OUT_GRID = "hasil_grid_agg.xlsx"
 OUT_DETAIL = "hasil_grid_detail.xlsx"
-
 GRID_DEC = 2   # grid presisi 0.01 derajat (sekitar 1km)
 MIN_RISK = 5   # min risk score dianggap high risk
 
-from geopy.geocoders import Nominatim
-import time
-
 def get_region(lat, lon, cache, delay=1):
+    
+    try:
+        lat = float(lat)
+        lon = float(lon)
+    except (ValueError, TypeError):
+        return "Unknown"
+
+    if pd.isnull(lat) or pd.isnull(lon) or lat == 0 or lon == 0:
+        return "Unknown"
+
     key = (round(lat, 3), round(lon, 3))
     if pd.isnull(lat) or pd.isnull(lon) or lat == 0 or lon == 0:
         return "Unknown"
@@ -72,13 +94,24 @@ def load_data():
 
 def preprocess_join(gs, ob):
     print("[INFO] Preprocessing & join ...")
+
+    # Pastikan kolom yang digunakan bertipe string
     gs['app_user_id'] = gs['app_user_id'].astype(str)
     ob['DEVICE_ID'] = ob['DEVICE_ID'].astype(str)
-    df = ob[ob['DEVICE_ID'].isin(gs['app_user_id'])]
+
+    # Filter GS hanya kolom yang dibutuhkan
+    gs_filtered = gs[['app_user_id', 'reasons_for_detection', 'device', 'os_version']].drop_duplicates()
+
+    # Lakukan join eksplisit (inner) berdasarkan app_user_id == DEVICE_ID
+    df = ob.merge(gs_filtered, left_on='DEVICE_ID', right_on='app_user_id', how='inner')
+
     print(f"[INFO] Data join: {len(df)} baris, {df['CIF'].nunique()} CIF unik")
+    df = df.fillna("")
     return df, gs
 
 def region_mapping(df, cache):
+    df['LATITUDE'] = pd.to_numeric(df['LATITUDE'], errors='coerce')
+    df['LONGITUDE'] = pd.to_numeric(df['LONGITUDE'], errors='coerce')
     tqdm.pandas()
     def _map(row):
         lat, lon = row['LATITUDE'], row['LONGITUDE']
@@ -221,6 +254,7 @@ def main():
     df, gs = preprocess_join(gs, ob)
     cache = load_region_cache()
     df = region_mapping(df, cache)
+    df = assign_geohash_id(df)
     agg, df_full = grid_aggregate(df, gs)
     # --- Simpan hasil ke file untuk dashboard ---
     agg.to_excel(OUT_GRID, index=False)
