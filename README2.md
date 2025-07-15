@@ -1,10 +1,4 @@
-Berikut revisi README **`Risk Grid Guardsquare Dashboard`** berdasarkan analisis dan rekomendasi sebelumnya, dengan bahasa yang lebih profesional, konsisten, dan lengkap:
-
----
-
 # 📍 Risk Grid Guardsquare Dashboard
-
-## 📘 Penjelasan Komprehensif
 
 ### 🎯 Tujuan Utama
 
@@ -215,14 +209,10 @@ flowchart LR
 ## 👤 Pengembang
 
 * ERM (Enterprise Risk Management)
-* Kontributor: MDI (Data Intelligence)
+* Kontributor: MDI 
 
 ---
 
 ## ⚖️ Lisensi
 
 Repositori ini bersifat **open-source untuk penggunaan internal dan riset**. Mohon digunakan secara etis dan sesuai ketentuan keamanan data.
-
----
-
-Jika kamu ingin saya bantu membuatkan versi bahasa Inggris atau integrasi langsung ke dalam `README.md`, tinggal beri tahu saja.
